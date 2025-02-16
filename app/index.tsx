@@ -1,12 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchRecipes } from '@/src/api';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { useGetChickenRecipes } from "@/src/api";
+import { View, Text, FlatList, ActivityIndicator } from "react-native";
 
 export default function HomeScreen() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['recipes', 'chicken'],
-    queryFn: () => fetchRecipes('chicken'),
-  });
+  const { data, isLoading, error } = useGetChickenRecipes();
 
   if (isLoading) return <ActivityIndicator />;
   if (error) return <Text>Error loading recipes</Text>;

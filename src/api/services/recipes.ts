@@ -1,8 +1,7 @@
+import { recipesApiAddress } from '@/src/consts/api';
 import axios from 'axios';
 
-const API_URL = 'https://www.themealdb.com/api/json/v1/1/search.php?s=';
-
 export const fetchRecipes = async (query: string) => {
-  const { data } = await axios.get(`${API_URL}${query}`);
+  const { data } = await axios.get(`${recipesApiAddress}${query}`);
   return data.meals;
 };
