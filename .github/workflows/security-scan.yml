@@ -29,9 +29,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      # 📌 Step 1: Generate SBOM (SPDX format)
+      # 📌 Step 1: Generate SBOM (Syft) 
       - name: Install Syft
-        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft version
+
+      - name: Verify Syft Installation
+        run: which syft
 
       - name: Generate SBOM (Syft)
         run: syft dir:. -o cyclonedx-json=sbom.json
