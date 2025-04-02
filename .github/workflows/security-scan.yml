@@ -1,0 +1,83 @@
+name: Security & License Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 3 * * 1'  # Runs every Monday at 3 AM UTC
+
+jobs:
+  security_scan:
+    name: Security & License Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18  # Change to match your project
+
+      - name: Install Dependencies
+        run: npm install
+
+      # 📌 Step 1: Generate SBOM (SPDX format)
+      - name: Generate SBOM (SPDX)
+        run: |
+          npx spdx-sbom-generator -o sbom.spdx.json
+
+      # 📌 Step 2: Install Grype for Vulnerability Scanning
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh
+          grype version
+
+      # 📌 Step 3: Scan SBOM for Vulnerabilities
+      - name: Scan for Vulnerabilities
+        run: grype sbom:sbom.spdx.json -o json > grype-report.json
+
+      # 📌 Step 4: Install License Checker
+      - name: Install License Checker
+        run: npm install -g license-checker
+
+      # 📌 Step 5: Check for Restricted Licenses
+      - name: Scan for Restricted Licenses
+        run: |
+          license-checker --json > licenses.json
+          cat licenses.json | jq '. | to_entries | map(select(.value.licenses | contains("GPL") or contains("AGPL") or contains("Commercial"))) | if length > 0 then (map("\(.key): \(.value.licenses)") | join("\n")) else "All licenses are allowed" end' > restricted-licenses.txt
+
+      # 📌 Step 6: Upload Reports as Artifacts
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+      - name: Upload Grype Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: grype-report
+          path: grype-report.json
+
+      - name: Upload License Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: restricted-licenses.txt
+
+      # 📌 Step 7: Fail the Build if Restricted Licenses Found
+      - name: Fail if Restricted Licenses Found
+        run: |
+          if grep -qv "All licenses are allowed" restricted-licenses.txt; then
+            echo "❌ Restricted licenses found!"
+            cat restricted-licenses.txt
+            exit 1
+          else
+            echo "✅ All licenses are open-source."
+          fi
