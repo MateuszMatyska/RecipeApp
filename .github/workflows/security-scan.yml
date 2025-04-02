@@ -30,9 +30,11 @@ jobs:
         run: npm install
 
       # 📌 Step 1: Generate SBOM (SPDX format)
-      - name: Generate SBOM (SPDX)
-        run: |
-          npx spdx-sbom-generator -o sbom.spdx.json
+      - name: Install Syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh
+
+      - name: Generate SBOM (Syft)
+        run: syft dir:. -o cyclonedx-json=sbom.json
 
       # 📌 Step 2: Install Grype for Vulnerability Scanning
       - name: Install Grype
