@@ -43,13 +43,13 @@ jobs:
 
       # 📌 Step 2: Install Grype for Vulnerability Scanning
       - name: Install Grype
-      run: |
-        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-        grype version
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          grype version
 
       # 📌 Step 3: Scan SBOM for Vulnerabilities
       - name: Scan for Vulnerabilities
-      run: grype sbom:sbom.json -o json > grype-report.json
+        run: grype sbom:sbom.json -o json > grype-report.json
 
       # 📌 Step 4: Install License Checker
       - name: Install License Checker
