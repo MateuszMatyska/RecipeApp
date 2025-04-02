@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - main
+      - develop
   pull_request:
     branches:
       - main
-  schedule:
-    - cron: '0 3 * * 1'  # Runs every Monday at 3 AM UTC
+      - develop
+  # schedule:
+    # - cron: '0 3 * * 1'  # Runs every Monday at 3 AM UTC
 
 jobs:
   security_scan:
