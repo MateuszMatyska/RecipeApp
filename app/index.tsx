@@ -1,15 +1,19 @@
-import { Text, View } from "react-native";
+import { useGetChickenRecipes } from "@/src/api";
+import { View, Text, FlatList, ActivityIndicator } from "react-native";
 
-export default function Index() {
+export default function HomeScreen() {
+  const { data, isLoading, error } = useGetChickenRecipes();
+
+  if (isLoading) return <ActivityIndicator />;
+  if (error) return <Text>Error loading recipes</Text>;
+
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+    <View>
+      <FlatList
+        data={data}
+        keyExtractor={(item) => item.idMeal}
+        renderItem={({ item }) => <Text>{item.strMeal}</Text>}
+      />
     </View>
   );
 }
