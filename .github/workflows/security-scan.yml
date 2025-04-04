@@ -60,8 +60,29 @@ jobs:
         run: |
           license-checker --json > licenses.json
           cat licenses.json | jq '. | to_entries | map(select(.value.licenses | contains("GPL") or contains("AGPL") or contains("Commercial"))) | if length > 0 then (map("\(.key): \(.value.licenses)") | join("\n")) else "All licenses are allowed" end' > restricted-licenses.txt
+      
+      # 📌 Step 6: ORT - Deep License & SBOM Scan
+      - name: Run ORT Analyzer
+        run: |
+          docker run \
+            -v ${{ github.workspace }}:/ort \
+            ghcr.io/oss-review-toolkit/ort \
+            analyze \
+            -i /ort \
+            -o /ort/ort-results \
+            --allow-dynamic-versions
 
-      # 📌 Step 6: Upload Reports as Artifacts
+      - name: Run ORT Reporter (SPDX & CycloneDX)
+        run: |
+          docker run \
+            -v ${{ github.workspace }}:/ort \
+            ghcr.io/oss-review-toolkit/ort \
+            report \
+            -i /ort/ort-results/analyzer-result.yml \
+            -o /ort/ort-reports \
+            -f CycloneDx,SpdxDocument
+
+      # 📌 Step 7: Upload Reports as Artifacts
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
@@ -79,8 +100,14 @@ jobs:
         with:
           name: license-report
           path: restricted-licenses.txt
+      
+      - name: Upload ORT Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-reports
+          path: ort-reports/
 
-      # 📌 Step 7: Fail the Build if Restricted Licenses Found
+      # 📌 Step 8: Fail the Build if Restricted Licenses Found
       - name: Fail if Restricted Licenses Found
         run: |
           if grep -qv "All licenses are allowed" restricted-licenses.txt; then
