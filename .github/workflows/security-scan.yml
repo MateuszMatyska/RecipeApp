@@ -59,14 +59,14 @@ jobs:
       # 📌 Step 5: Check for Restricted Licenses
       - name: Scan for Restricted Licenses
         run: |
-          # Ensure the directory for the output file exists
+          # Ensure the directory exists before writing to the file
           mkdir -p ${GITHUB_WORKSPACE}/licenses
 
-          # Run license-checker and write to the file
-          license-checker --json > licenses.json
+          # Run license-checker and write to the JSON file
+          license-checker --json > ${GITHUB_WORKSPACE}/licenses/licenses.json
 
           # Create the restricted-licenses.txt file by processing the licenses.json
-          cat licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
+          cat ${GITHUB_WORKSPACE}/licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
 
       # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
       - name: Use HTTPS instead of SSH for Git cloning
@@ -115,6 +115,12 @@ jobs:
           allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0" "GPL-3.0")
 
           restricted=false
+
+          # Check if the restricted-licenses.txt exists before proceeding
+          if [ ! -f ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt ]; then
+            echo "❌ restricted-licenses.txt file not found!"
+            exit 1
+          fi
 
           # Loop through the restricted-licenses.txt file line by line
           while IFS= read -r line; do
