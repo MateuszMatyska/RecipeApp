@@ -105,10 +105,9 @@ jobs:
       # 📌 Step 8: Fail the Build if Truly Restricted Licenses Found
       - name: Fail if Restricted Licenses Found
         run: |
-          # Configure allowed licenses (can also use environment variables or GitHub secrets for added flexibility)
+          # Configure allowed licenses as environment variable (can be passed dynamically from external sources like secrets, config files, etc.)
           allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0" "GPL-3.0")
 
-          # Flag to track if restricted licenses are found
           restricted=false
 
           # Loop through the restricted-licenses.txt file line by line
