@@ -59,8 +59,14 @@ jobs:
       # 📌 Step 5: Check for Restricted Licenses
       - name: Scan for Restricted Licenses
         run: |
+          # Ensure the directory for the output file exists
+          mkdir -p ${GITHUB_WORKSPACE}/licenses
+
+          # Run license-checker and write to the file
           license-checker --json > licenses.json
-          cat licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > restricted-licenses.txt
+
+          # Create the restricted-licenses.txt file by processing the licenses.json
+          cat licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
 
       # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
       - name: Use HTTPS instead of SSH for Git cloning
@@ -94,7 +100,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: license-report
-          path: restricted-licenses.txt
+          path: ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
 
       - name: Upload ORT Reports
         uses: actions/upload-artifact@v4
@@ -142,7 +148,7 @@ jobs:
               echo "❌ Restricted license detected: $line"
               restricted=true
             fi
-          done < restricted-licenses.txt
+          done < ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
 
           # Exit with error if restricted licenses are found
           if $restricted; then
