@@ -66,9 +66,10 @@ jobs:
       - name: Run ORT Analysis and Reporting
         uses: oss-review-toolkit/ort-ci-github-action@v1
         with:
-          # The directory where your SBOM and license files are located
           input: ${{ github.workspace }}
           output: ort-results
+        env:
+          JAVA_TOOL_OPTIONS: "-Xmx8192m"  # Increase the heap size to 8 GB (adjust as needed)
 
       # 📌 Step 7: Upload Reports as Artifacts
       - name: Upload SBOM
