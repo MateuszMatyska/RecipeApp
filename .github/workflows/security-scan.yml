@@ -63,12 +63,14 @@ jobs:
 
       # 📌 Step 6: ORT - Deep License & SBOM Scan
       - name: Prepare ORT temp folder
-        run: mkdir -p ${{ github.workspace }}/ort-tmp
+        run: |
+          mkdir -p ${{ github.workspace }}/ort-tmp
 
       - name: Run ORT Analyzer
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/ort \
+            -v ${{ github.workspace }}/ort-tmp:/ort/ort-tmp \
             -e JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/ort/ort-tmp" \
             ghcr.io/oss-review-toolkit/ort \
             analyze \
@@ -79,6 +81,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/ort \
+            -v ${{ github.workspace }}/ort-tmp:/ort/ort-tmp \
             -e JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/ort/ort-tmp" \
             ghcr.io/oss-review-toolkit/ort \
             report \
