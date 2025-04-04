@@ -62,15 +62,14 @@ jobs:
           cat licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > restricted-licenses.txt
 
       # 📌 Step 6: ORT - Deep License & SBOM Scan
-      - name: Create ORT temp directory
-        run: mkdir -p /tmp/ort-temp
+      - name: Prepare ORT temp folder
+        run: mkdir -p ${{ github.workspace }}/ort-tmp
 
       - name: Run ORT Analyzer
         run: |
-          docker run \
-            --rm \
+          docker run --rm \
             -v ${{ github.workspace }}:/ort \
-            -v /tmp/ort-temp:/tmp \
+            -e JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/ort/ort-tmp" \
             ghcr.io/oss-review-toolkit/ort \
             analyze \
             -i /ort \
@@ -78,10 +77,9 @@ jobs:
 
       - name: Run ORT Reporter (SPDX & CycloneDX)
         run: |
-          docker run \
-            --rm \
+          docker run --rm \
             -v ${{ github.workspace }}:/ort \
-            -v /tmp/ort-temp:/tmp \
+            -e JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/ort/ort-tmp" \
             ghcr.io/oss-review-toolkit/ort \
             report \
             -i /ort/ort-results/analyzer-result.yml \
