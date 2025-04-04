@@ -105,19 +105,27 @@ jobs:
       # 📌 Step 8: Fail the Build if Truly Restricted Licenses Found
       - name: Fail if Restricted Licenses Found
         run: |
-          allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0")
+          # Configure allowed licenses (can also use environment variables or GitHub secrets for added flexibility)
+          allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0" "GPL-3.0")
+
+          # Flag to track if restricted licenses are found
           restricted=false
 
+          # Loop through the restricted-licenses.txt file line by line
           while IFS= read -r line; do
+            # Extract the licenses (e.g., MIT, Apache-2.0, etc.)
             licenses=$(echo "$line" | grep -oP '\((.*?)\)' | tr -d '()')
 
+            # If no license information is found, skip this line
             if [ -z "$licenses" ]; then
               continue
             fi
 
+            # Split the licenses if multiple are found (e.g., MIT OR GPL-2.0)
             IFS=' OR ' read -ra license_array <<< "$licenses"
             allowed=false
 
+            # Check each license against the allowed licenses
             for lic in "${license_array[@]}"; do
               for allowed_lic in "${allowed_licenses[@]}"; do
                 if [[ "$lic" == "$allowed_lic" ]]; then
@@ -130,12 +138,14 @@ jobs:
               fi
             done
 
+            # If no allowed license found, mark as restricted
             if ! $allowed; then
               echo "❌ Restricted license detected: $line"
               restricted=true
             fi
           done < restricted-licenses.txt
 
+          # Exit with error if restricted licenses are found
           if $restricted; then
             exit 1
           else
