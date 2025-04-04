@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18  # Change to match your project
+          node-version: 18
 
       - name: Install Dependencies
         run: npm install
@@ -59,8 +59,8 @@ jobs:
       - name: Scan for Restricted Licenses
         run: |
           license-checker --json > licenses.json
-          cat licenses.json | jq '. | to_entries | map(select(.value.licenses | contains("GPL") or contains("AGPL") or contains("Commercial"))) | if length > 0 then (map("\(.key): \(.value.licenses)") | join("\n")) else "All licenses are allowed" end' > restricted-licenses.txt
-      
+          cat licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > restricted-licenses.txt
+
       # 📌 Step 6: ORT - Deep License & SBOM Scan
       - name: Run ORT Analyzer
         run: |
@@ -69,8 +69,7 @@ jobs:
             ghcr.io/oss-review-toolkit/ort \
             analyze \
             -i /ort \
-            -o /ort/ort-results \
-            --allow-dynamic-versions
+            -o /ort/ort-results
 
       - name: Run ORT Reporter (SPDX & CycloneDX)
         run: |
@@ -87,7 +86,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sbom
-          path: sbom.spdx.json
+          path: sbom.json
 
       - name: Upload Grype Report
         uses: actions/upload-artifact@v4
@@ -107,13 +106,42 @@ jobs:
           name: ort-reports
           path: ort-reports/
 
-      # 📌 Step 8: Fail the Build if Restricted Licenses Found
+      # 📌 Step 8: Fail the Build if Truly Restricted Licenses Found
       - name: Fail if Restricted Licenses Found
         run: |
-          if grep -qv "All licenses are allowed" restricted-licenses.txt; then
-            echo "❌ Restricted licenses found!"
-            cat restricted-licenses.txt
+          allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0")
+          restricted=false
+
+          while IFS= read -r line; do
+            licenses=$(echo "$line" | grep -oP '\((.*?)\)' | tr -d '()')
+
+            if [ -z "$licenses" ]; then
+              continue
+            fi
+
+            IFS=' OR ' read -ra license_array <<< "$licenses"
+            allowed=false
+
+            for lic in "${license_array[@]}"; do
+              for allowed_lic in "${allowed_licenses[@]}"; do
+                if [[ "$lic" == "$allowed_lic" ]]; then
+                  allowed=true
+                  break
+                fi
+              done
+              if $allowed; then
+                break
+              fi
+            done
+
+            if ! $allowed; then
+              echo "❌ Restricted license detected: $line"
+              restricted=true
+            fi
+          done < restricted-licenses.txt
+
+          if $restricted; then
             exit 1
           else
-            echo "✅ All licenses are open-source."
+            echo "✅ No restricted licenses found."
           fi
