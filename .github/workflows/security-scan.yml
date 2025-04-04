@@ -9,8 +9,9 @@ on:
     branches:
       - main
       - develop
-  # schedule:
-    # - cron: '0 3 * * 1'  # Runs every Monday at 3 AM UTC
+  #schedule:
+    # Runs every Monday at 3 AM UTC
+    #- cron: '0 3 * * 1'  
 
 jobs:
   security_scan:
@@ -29,7 +30,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      # 📌 Step 1: Generate SBOM (Syft) 
+      # 📌 Step 1: Generate SBOM (Syft)
       - name: Install Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -61,33 +62,13 @@ jobs:
           license-checker --json > licenses.json
           cat licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > restricted-licenses.txt
 
-      # 📌 Step 6: ORT - Deep License & SBOM Scan
-      - name: Prepare ORT temp folder
-        run: |
-          mkdir -p ${{ github.workspace }}/ort-tmp
-
-      - name: Run ORT Analyzer
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/ort \
-            -v ${{ github.workspace }}/ort-tmp:/ort/ort-tmp \
-            -e JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/ort/ort-tmp" \
-            ghcr.io/oss-review-toolkit/ort \
-            analyze \
-            -i /ort \
-            -o /ort/ort-results
-
-      - name: Run ORT Reporter (SPDX & CycloneDX)
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/ort \
-            -v ${{ github.workspace }}/ort-tmp:/ort/ort-tmp \
-            -e JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/ort/ort-tmp" \
-            ghcr.io/oss-review-toolkit/ort \
-            report \
-            -i /ort/ort-results/analyzer-result.yml \
-            -o /ort/ort-reports \
-            -f CycloneDx,SpdxDocument
+      # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
+      - name: Run ORT Analysis and Reporting
+        uses: oss-review-toolkit/ort-ci-github-action@v1
+        with:
+          # The directory where your SBOM and license files are located
+          input: ${{ github.workspace }}
+          output: ort-results
 
       # 📌 Step 7: Upload Reports as Artifacts
       - name: Upload SBOM
@@ -107,12 +88,12 @@ jobs:
         with:
           name: license-report
           path: restricted-licenses.txt
-      
+
       - name: Upload ORT Reports
         uses: actions/upload-artifact@v4
         with:
           name: ort-reports
-          path: ort-reports/
+          path: ort-results/
 
       # 📌 Step 8: Fail the Build if Truly Restricted Licenses Found
       - name: Fail if Restricted Licenses Found
