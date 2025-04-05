@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -55,8 +55,9 @@ jobs:
       # 📌 Step 5: Check for Restricted Licenses
       - name: Scan for Restricted Licenses
         run: |
-          license-checker --json > licenses.json
-          cat licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > restricted-licenses.txt
+          mkdir -p licenses
+          license-checker --json > licenses/licenses.json
+          cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses.txt
 
       # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
       - name: Use HTTPS instead of SSH for Git cloning
@@ -103,6 +104,12 @@ jobs:
         run: |
           allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0")
           restricted=false
+
+          if [ ! -f licenses/restricted-licenses.txt ]; then
+            echo "❌ restricted-licenses.txt file not found."
+            exit 1
+          fi
+
           while IFS= read -r line; do
             licenses=$(echo "$line" | grep -oP '\((.*?)\)' | tr -d '()')
             if [ -z "$licenses" ]; then
@@ -125,7 +132,8 @@ jobs:
               echo "❌ Restricted license detected: $line"
               restricted=true
             fi
-          done < restricted-licenses.txt
+          done < licenses/restricted-licenses.txt
+
           if $restricted; then
             exit 1
           else
