@@ -62,17 +62,17 @@ jobs:
       # 📌 ORT Scan
       - name: Use HTTPS instead of SSH for Git cloning
         run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
-      
-      - name: Checkout project
-        uses: actions/checkout@v3
-        with:
-          repository: 'jshttp/mime-types'
+
+      - name: Clone jshttp/mime-types for ORT scan
+        run: |
+          mkdir -p external-repos
+          git clone https://github.com/jshttp/mime-types.git external-repos/mime-types
 
       - name: Run GitHub Action for ORT
         uses: oss-review-toolkit/ort-ci-github-action@v1
         with:
           allow-dynamic-versions: 'true'
-          ort-cli-args: '-P ort.analyzer.enabledPackageManagers=NPM,Yarn,Yarn2'
+          ort-cli-args: '-P ort.analyzer.enabledPackageManagers=NPM,Yarn,Yarn2 external-repos/mime-types'
 
       # 📌 Upload Reports
       - name: Upload SBOM
