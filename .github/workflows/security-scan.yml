@@ -59,9 +59,13 @@ jobs:
       # 📌 Step 5: Check for Restricted Licenses
       - name: Scan for Restricted Licenses
         run: |
-          # Create the licenses directory if it doesn't exist
+          # Ensure the directory exists where the restricted-licenses.txt will be created
           mkdir -p ${GITHUB_WORKSPACE}/licenses
+
+          # Generate licenses.json and then map the output to a file
           license-checker --json > ${GITHUB_WORKSPACE}/licenses/licenses.json
+
+          # Now map the output to restricted-licenses.txt in the licenses directory
           cat ${GITHUB_WORKSPACE}/licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
 
       # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
@@ -112,7 +116,7 @@ jobs:
 
           restricted=false
 
-          # Check if restricted-licenses.txt file exists
+          # Check if the file exists before reading it
           if [ ! -f ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt ]; then
             echo "❌ restricted-licenses.txt file not found."
             exit 1
