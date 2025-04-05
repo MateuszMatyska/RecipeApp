@@ -1,0 +1,149 @@
+name: Security & License Scan
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  #schedule:
+    # Runs every Monday at 3 AM UTC
+    #- cron: '0 3 * * 1'  
+jobs:
+  security_scan:
+    name: Security & License Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      # 📌 Step 1: Generate SBOM (Syft)
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft version
+      - name: Verify Syft Installation
+        run: which syft
+
+      - name: Generate SBOM (Syft)
+        run: syft dir:. -o cyclonedx-json=sbom.json
+
+      # 📌 Step 2: Install Grype for Vulnerability Scanning
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          grype version
+
+      # 📌 Step 3: Scan SBOM for Vulnerabilities
+      - name: Scan for Vulnerabilities
+        run: grype sbom:sbom.json -o json > grype-report.json
+
+      # 📌 Step 4: Install License Checker
+      - name: Install License Checker
+        run: npm install -g license-checker
+
+      # 📌 Step 5: Check for Restricted Licenses
+      - name: Scan for Restricted Licenses
+        run: |
+          mkdir -p licenses
+          license-checker --json > licenses/licenses.json
+          cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses.txt
+          cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses-check.txt
+
+      # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
+      - name: Use HTTPS instead of SSH for Git cloning
+        run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+
+      - name: Checkout project
+        uses: actions/checkout@v3
+        with:
+          repository: 'jshttp/mime-types'
+
+      - name: Run GitHub Action for ORT
+        uses: oss-review-toolkit/ort-ci-github-action@v1
+        with:
+          allow-dynamic-versions: 'true'
+          ort-cli-args: '-P ort.analyzer.enabledPackageManagers=NPM,Yarn,Yarn2'
+
+      # 📌 Step 7: Upload Reports as Artifacts
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
+      - name: Upload Grype Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: grype-report
+          path: grype-report.json
+
+      - name: Upload License Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: restricted-licenses.txt
+
+      - name: Upload ORT Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-reports
+          path: ort-results/
+
+      # 📌 Step 8: Check for Restricted Licenses for build 
+      - name: Scan for Restricted Licenses
+        run: |
+          mkdir -p licenses
+          license-checker --json > licenses/licenses.json
+          cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses-check.txt
+
+      # 📌 Step 9: Fail the Build if Truly Restricted Licenses Found
+      - name: Fail if Restricted Licenses Found
+        run: |
+          allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0")
+          restricted=false
+
+          if [ ! -f licenses/restricted-licenses-check.txt ]; then
+            echo "❌ restricted-licenses-check.txt file not found."
+            exit 1
+          fi
+
+          while IFS= read -r line; do
+            licenses=$(echo "$line" | grep -oP '\((.*?)\)' | tr -d '()')
+            if [ -z "$licenses" ]; then
+              continue
+            fi
+            IFS=' OR ' read -ra license_array <<< "$licenses"
+            allowed=false
+            for lic in "${license_array[@]}"; do
+              for allowed_lic in "${allowed_licenses[@]}"; do
+                if [[ "$lic" == "$allowed_lic" ]]; then
+                  allowed=true
+                  break
+                fi
+              done
+              if $allowed; then
+                break
+              fi
+            done
+            if ! $allowed; then
+              echo "❌ Restricted license detected: $line"
+              restricted=true
+            fi
+          done < licenses/restricted-licenses-check.txt
+
+          if $restricted; then
+            exit 1
+          else
+            echo "✅ No restricted licenses found."
+          fi
