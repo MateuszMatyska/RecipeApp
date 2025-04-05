@@ -59,22 +59,23 @@ jobs:
       # 📌 Step 5: Check for Restricted Licenses
       - name: Scan for Restricted Licenses
         run: |
-          # Ensure the directory exists where the restricted-licenses.txt will be created
+          # Create the directory for licenses to ensure the path is correct
           mkdir -p ${GITHUB_WORKSPACE}/licenses
 
-          # Generate licenses.json and then map the output to a file
+          # Generate licenses.json using license-checker
           license-checker --json > ${GITHUB_WORKSPACE}/licenses/licenses.json
-
-          # Debugging: Print directory contents
-          echo "### Directory structure ###"
+          
+          # Debugging step to show file creation
+          echo "### Directory contents after license-checker ###"
           ls -l ${GITHUB_WORKSPACE}/licenses
 
-          # Map the output to restricted-licenses.txt in the licenses directory
+          # Map the output to restricted-licenses.txt using jq
           cat ${GITHUB_WORKSPACE}/licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
 
-          # Debugging: Check if the file is created
-          echo "### restricted-licenses.txt creation status ###"
+          # Check if the restricted-licenses.txt was created and list its contents
+          echo "### restricted-licenses.txt existence check ###"
           ls -l ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
+          cat ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt || echo "File empty or doesn't exist"
 
       # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
       - name: Use HTTPS instead of SSH for Git cloning
@@ -124,7 +125,7 @@ jobs:
 
           restricted=false
 
-          # Check if the file exists before reading it
+          # Check if the restricted-licenses.txt file exists before reading it
           if [ ! -f ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt ]; then
             echo "❌ restricted-licenses.txt file not found."
             exit 1
