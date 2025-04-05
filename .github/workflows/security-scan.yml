@@ -100,7 +100,7 @@ jobs:
           name: ort-reports
           path: ort-results/
 
-      # 📌 Step 8: Check for Restricted Licenses part 2 
+      # 📌 Step 8: Check for Restricted Licenses for build 
       - name: Scan for Restricted Licenses
         run: |
           mkdir -p licenses
