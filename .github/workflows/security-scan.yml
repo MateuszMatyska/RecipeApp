@@ -65,8 +65,16 @@ jobs:
           # Generate licenses.json and then map the output to a file
           license-checker --json > ${GITHUB_WORKSPACE}/licenses/licenses.json
 
-          # Now map the output to restricted-licenses.txt in the licenses directory
+          # Debugging: Print directory contents
+          echo "### Directory structure ###"
+          ls -l ${GITHUB_WORKSPACE}/licenses
+
+          # Map the output to restricted-licenses.txt in the licenses directory
           cat ${GITHUB_WORKSPACE}/licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
+
+          # Debugging: Check if the file is created
+          echo "### restricted-licenses.txt creation status ###"
+          ls -l ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
 
       # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
       - name: Use HTTPS instead of SSH for Git cloning
