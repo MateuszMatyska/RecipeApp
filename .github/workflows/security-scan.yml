@@ -59,20 +59,20 @@ jobs:
           license-checker --json > licenses/licenses.json
           cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses.txt
 
-      # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
-      - name: Use HTTPS instead of SSH for Git cloning
-        run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+      # # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
+      # - name: Use HTTPS instead of SSH for Git cloning
+      #   run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
 
-      - name: Checkout project
-        uses: actions/checkout@v3
-        with:
-          repository: 'jshttp/mime-types'
+      # - name: Checkout project
+      #   uses: actions/checkout@v3
+      #   with:
+      #     repository: 'jshttp/mime-types'
 
-      - name: Run GitHub Action for ORT
-        uses: oss-review-toolkit/ort-ci-github-action@v1
-        with:
-          allow-dynamic-versions: 'true'
-          ort-cli-args: '-P ort.analyzer.enabledPackageManagers=NPM,Yarn,Yarn2'
+      # - name: Run GitHub Action for ORT
+      #   uses: oss-review-toolkit/ort-ci-github-action@v1
+      #   with:
+      #     allow-dynamic-versions: 'true'
+      #     ort-cli-args: '-P ort.analyzer.enabledPackageManagers=NPM,Yarn,Yarn2'
 
       # 📌 Step 7: Upload Reports as Artifacts
       - name: Upload SBOM
