@@ -58,21 +58,22 @@ jobs:
           mkdir -p licenses
           license-checker --json > licenses/licenses.json
           cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses.txt
+          cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses-check.txt
 
-      # # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
-      # - name: Use HTTPS instead of SSH for Git cloning
-      #   run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+      # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
+      - name: Use HTTPS instead of SSH for Git cloning
+        run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
 
-      # - name: Checkout project
-      #   uses: actions/checkout@v3
-      #   with:
-      #     repository: 'jshttp/mime-types'
+      - name: Checkout project
+        uses: actions/checkout@v3
+        with:
+          repository: 'jshttp/mime-types'
 
-      # - name: Run GitHub Action for ORT
-      #   uses: oss-review-toolkit/ort-ci-github-action@v1
-      #   with:
-      #     allow-dynamic-versions: 'true'
-      #     ort-cli-args: '-P ort.analyzer.enabledPackageManagers=NPM,Yarn,Yarn2'
+      - name: Run GitHub Action for ORT
+        uses: oss-review-toolkit/ort-ci-github-action@v1
+        with:
+          allow-dynamic-versions: 'true'
+          ort-cli-args: '-P ort.analyzer.enabledPackageManagers=NPM,Yarn,Yarn2'
 
       # 📌 Step 7: Upload Reports as Artifacts
       - name: Upload SBOM
@@ -105,8 +106,8 @@ jobs:
           allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0")
           restricted=false
 
-          if [ ! -f licenses/restricted-licenses.txt ]; then
-            echo "❌ restricted-licenses.txt file not found."
+          if [ ! -f licenses/restricted-licenses-check.txt ]; then
+            echo "❌ restricted-licenses-check.txt file not found."
             exit 1
           fi
 
@@ -132,7 +133,7 @@ jobs:
               echo "❌ Restricted license detected: $line"
               restricted=true
             fi
-          done < licenses/restricted-licenses.txt
+          done < licenses/restricted-licenses-check.txt
 
           if $restricted; then
             exit 1
