@@ -100,7 +100,14 @@ jobs:
           name: ort-reports
           path: ort-results/
 
-      # 📌 Step 8: Fail the Build if Truly Restricted Licenses Found
+      # 📌 Step 8: Check for Restricted Licenses part 2 
+      - name: Scan for Restricted Licenses
+        run: |
+          mkdir -p licenses
+          license-checker --json > licenses/licenses.json
+          cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses-check.txt
+
+      # 📌 Step 9: Fail the Build if Truly Restricted Licenses Found
       - name: Fail if Restricted Licenses Found
         run: |
           allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0")
