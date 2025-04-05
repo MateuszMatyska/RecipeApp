@@ -127,6 +127,7 @@ jobs:
 
           # Check if the restricted-licenses.txt file exists before reading it
           if [ ! -f ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt ]; then
+            ls -la ${GITHUB_WORKSPACE}/licenses || echo "❌ licenses directory not found"
             echo "❌ restricted-licenses.txt file not found."
             exit 1
           fi
