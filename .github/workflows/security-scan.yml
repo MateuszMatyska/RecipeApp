@@ -2,16 +2,11 @@ name: Security & License Scan
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
   #schedule:
-    # Runs every Monday at 3 AM UTC
-    #- cron: '0 3 * * 1'  
+  #  - cron: '0 3 * * 1'
 
 jobs:
   security_scan:
@@ -30,54 +25,41 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      # 📌 Step 1: Generate SBOM (Syft)
+      # 📌 Install Syft and Generate SBOM
       - name: Install Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           syft version
 
-      - name: Verify Syft Installation
-        run: which syft
-
       - name: Generate SBOM (Syft)
         run: syft dir:. -o cyclonedx-json=sbom.json
 
-      # 📌 Step 2: Install Grype for Vulnerability Scanning
+      # 📌 Install Grype and Scan for Vulnerabilities
       - name: Install Grype
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
           grype version
 
-      # 📌 Step 3: Scan SBOM for Vulnerabilities
       - name: Scan for Vulnerabilities
         run: grype sbom:sbom.json -o json > grype-report.json
 
-      # 📌 Step 4: Install License Checker
+      # 📌 Install and Run License Checker
       - name: Install License Checker
         run: npm install -g license-checker
 
-      # 📌 Step 5: Check for Restricted Licenses
       - name: Scan for Restricted Licenses
         run: |
-          # Create the directory for licenses to ensure the path is correct
-          mkdir -p ${GITHUB_WORKSPACE}/licenses
-
-          # Generate licenses.json using license-checker
-          license-checker --json > ${GITHUB_WORKSPACE}/licenses/licenses.json
+          mkdir -p licenses
+          license-checker --json > licenses/licenses.json
+          cat licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > licenses/restricted-licenses.txt
           
-          # Debugging step to show file creation
-          echo "### Directory contents after license-checker ###"
-          ls -l ${GITHUB_WORKSPACE}/licenses
+          echo "📂 licenses directory content:"
+          ls -l licenses
 
-          # Map the output to restricted-licenses.txt using jq
-          cat ${GITHUB_WORKSPACE}/licenses/licenses.json | jq '. | to_entries | map("\(.key): \(.value.licenses)") | .[]' > ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
+          echo "📄 restricted-licenses.txt content:"
+          cat licenses/restricted-licenses.txt || echo "⚠️ File empty or not created"
 
-          # Check if the restricted-licenses.txt was created and list its contents
-          echo "### restricted-licenses.txt existence check ###"
-          ls -l ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
-          cat ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt || echo "File empty or doesn't exist"
-
-      # 📌 Step 6: ORT - Deep License & SBOM Scan (Using ORT GitHub Action)
+      # 📌 ORT Scan
       - name: Use HTTPS instead of SSH for Git cloning
         run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
       
@@ -85,14 +67,14 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: 'jshttp/mime-types'
-      
+
       - name: Run GitHub Action for ORT
         uses: oss-review-toolkit/ort-ci-github-action@v1
         with:
           allow-dynamic-versions: 'true'
           ort-cli-args: '-P ort.analyzer.enabledPackageManagers=NPM,Yarn,Yarn2'
 
-      # 📌 Step 7: Upload Reports as Artifacts
+      # 📌 Upload Reports
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
@@ -109,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: license-report
-          path: ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
+          path: licenses/restricted-licenses.txt
 
       - name: Upload ORT Reports
         uses: actions/upload-artifact@v4
@@ -117,36 +99,24 @@ jobs:
           name: ort-reports
           path: ort-results/
 
-      # 📌 Step 8: Fail the Build if Truly Restricted Licenses Found
+      # 📌 Fail if Restricted Licenses Found
       - name: Fail if Restricted Licenses Found
         run: |
-          # Configure allowed licenses as environment variable (can be passed dynamically from external sources like secrets, config files, etc.)
           allowed_licenses=("MIT" "BSD-3-Clause" "Apache-2.0" "GPL-3.0")
 
           restricted=false
 
-          # Check if the restricted-licenses.txt file exists before reading it
-          if [ ! -f ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt ]; then
-            ls -la ${GITHUB_WORKSPACE}/licenses || echo "❌ licenses directory not found"
+          if [ ! -f licenses/restricted-licenses.txt ]; then
             echo "❌ restricted-licenses.txt file not found."
             exit 1
           fi
 
-          # Loop through the restricted-licenses.txt file line by line
           while IFS= read -r line; do
-            # Extract the licenses (e.g., MIT, Apache-2.0, etc.)
             licenses=$(echo "$line" | grep -oP '\((.*?)\)' | tr -d '()')
+            if [ -z "$licenses" ]; then continue; fi
 
-            # If no license information is found, skip this line
-            if [ -z "$licenses" ]; then
-              continue
-            fi
-
-            # Split the licenses if multiple are found (e.g., MIT OR GPL-2.0)
             IFS=' OR ' read -ra license_array <<< "$licenses"
             allowed=false
-
-            # Check each license against the allowed licenses
             for lic in "${license_array[@]}"; do
               for allowed_lic in "${allowed_licenses[@]}"; do
                 if [[ "$lic" == "$allowed_lic" ]]; then
@@ -154,19 +124,15 @@ jobs:
                   break
                 fi
               done
-              if $allowed; then
-                break
-              fi
+              $allowed && break
             done
 
-            # If no allowed license found, mark as restricted
             if ! $allowed; then
               echo "❌ Restricted license detected: $line"
               restricted=true
             fi
-          done < ${GITHUB_WORKSPACE}/licenses/restricted-licenses.txt
+          done < licenses/restricted-licenses.txt
 
-          # Exit with error if restricted licenses are found
           if $restricted; then
             exit 1
           else
