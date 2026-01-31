@@ -1,4 +1,5 @@
-- id: no-hardcoded-ips
+rules:
+  - id: no-hardcoded-ips
     message: "WARNING: Hardcoded IP address detected. Use DNS names or environment variables."
     severity: ERROR
     languages: [generic]
