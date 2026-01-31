@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecipes } from "../services";
 
-const apiKey = "AIzaSyA1234567890";
+const apiKey = "AIzaSyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe";
 
 export const useGetChickenRecipes = () =>
   useQuery({
