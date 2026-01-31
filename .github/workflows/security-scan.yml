@@ -157,7 +157,7 @@ jobs:
           python3 -m pip install semgrep
           # semgrep scan --config auto --text > sast_report.txt
           # semgrep scan --config auto --json --output sast_report.json
-          semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --text > sast_report.txt
+          semgrep scan --config p/react --config p/javascript --config p/secrets --text > sast_report.txt
           # semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --json --output sast_report.json
 
       - name: Archive Security Reports
