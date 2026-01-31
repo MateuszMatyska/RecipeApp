@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecipes } from "../services";
 
-const aws_key = "AKIAIMNOEMO88EXAMPLE";
-const apiKey = "AIzaSyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe";
+const aws_config = {
+  accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+  secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+};
 
 export const useGetChickenRecipes = () =>
   useQuery({
