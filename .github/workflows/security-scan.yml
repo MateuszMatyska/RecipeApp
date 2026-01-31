@@ -155,10 +155,20 @@ jobs:
       - name: Run Semgrep (SAST)
         run: |
           python3 -m pip install semgrep
-          # semgrep scan --config auto --config .github/semgrep-rules.yaml --eror  --text > sast_report.txt
-          # semgrep scan --config auto --config .github/semgrep-rules.yaml --eror  --json --output sast_report.json
-          semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --config .github/semgrep-rules.yaml --eror --text > sast_report.txt
-          # semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --config .github/semgrep-rules.yaml --eror  --json --output sast_report.json
+          # semgrep scan --config auto --config .github/semgrep-rules.yaml --text > sast_report.txt
+          # semgrep scan --config auto --config .github/semgrep-rules.yaml --json --output sast_report.json
+          semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --config .github/semgrep-rules.yaml --text > sast_report.txt
+          # semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --config .github/semgrep-rules.yaml --json --output sast_report.json
+      
+      - name: Force Fail if secrets found
+        run: |
+          if grep -q "CRITICAL" sast_report.txt; then
+            echo "-------------------------------------------------------"
+            cat sast_report.txt
+            echo "-------------------------------------------------------"
+            echo "Security check failed! Secrets detected."
+            exit 1
+          fi
 
       - name: Archive Security Reports
         uses: actions/upload-artifact@v4
