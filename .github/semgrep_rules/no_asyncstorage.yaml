@@ -1,0 +1,6 @@
+rules:
+  - id: no-sensitive-data-in-asyncstorage
+    message: "WARNING: AsyncStorage is not encrypted. Use react-native-keychain or react-native-encrypted-storage for tokens and secrets."
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-regex: 'AsyncStorage\.setItem\(.*(token|auth|password|secret|jwt).*\)'
