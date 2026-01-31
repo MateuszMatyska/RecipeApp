@@ -1,0 +1,7 @@
+rules:
+  - id: hardcoded-secrets-blocking
+    message: "KRYTYCZNE: Wykryto sekret! Usuń go przed mergem."
+    severity: ERROR
+    languages: [generic]
+    patterns:
+      - pattern-regex: 'AIza[0-9A-Za-z-_]{35}|AKIA[0-9A-Z]{16}'
