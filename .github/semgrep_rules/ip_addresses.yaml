@@ -1,0 +1,5 @@
+- id: no-hardcoded-ips
+    message: "WARNING: Hardcoded IP address detected. Use DNS names or environment variables."
+    severity: ERROR
+    languages: [generic]
+    pattern-regex: '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'

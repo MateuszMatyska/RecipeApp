@@ -1,0 +1,6 @@
+rules:
+  - id: no-console-log-production
+    message: "CODE QUALITY: Remove console.log before pushing. It can leak sensitive data in production logs."
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern: console.log(...)

@@ -155,10 +155,10 @@ jobs:
       - name: Run Semgrep (SAST)
         run: |
           python3 -m pip install semgrep
-          # semgrep scan --config auto --config .github/semgrep-rules.yaml --text > sast_report.txt
-          # semgrep scan --config auto --config .github/semgrep-rules.yaml --json --output sast_report.json
-          semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --config .github/semgrep-rules.yaml --text > sast_report.txt
-          # semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --config .github/semgrep-rules.yaml --json --output sast_report.json
+          # semgrep scan --config auto --config .github/semgrep_rules/ --text > sast_report.txt
+          # semgrep scan --config auto --config .github/semgrep_rules/ --json --output sast_report.json
+          semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --config .github/semgrep_rules/ --text > sast_report.txt
+          # semgrep scan --config p/react --config p/javascript --config p/default --config p/secrets --config .github/semgrep_rules/ --json --output sast_report.json
       
       - name: Force Fail if secrets found
         run: |
@@ -166,7 +166,7 @@ jobs:
             echo "-------------------------------------------------------"
             cat sast_report.txt
             echo "-------------------------------------------------------"
-            echo "Security check failed! Secrets detected."
+            echo "Security check failed!"
             exit 1
           fi
 
