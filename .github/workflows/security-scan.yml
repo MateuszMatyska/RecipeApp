@@ -147,3 +147,22 @@ jobs:
           else
             echo "✅ No restricted licenses found."
           fi
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep (SAST)
+        run: |
+          python3 -m pip install semgrep
+          semgrep scan --config auto --text > sast_report.txt
+          # semgrep scan --config auto --json --output sast_report.json
+
+      - name: Archive Security Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            sast_report.txt
+            # sast_report.json        
