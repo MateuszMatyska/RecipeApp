@@ -1,0 +1,6 @@
+rules:
+  - id: no-http-allowed
+    message: "NETWORKING ERROR: Using http:// is strictly forbidden. Use https:// to prevent Man-in-the-Middle attacks."
+    severity: ERROR
+    languages: [generic]
+    pattern-regex: "http://[a-z0-9.-]+"
