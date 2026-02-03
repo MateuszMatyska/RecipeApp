@@ -1,0 +1,8 @@
+rules:
+  - id: risky-html-rendering
+    message: "WARNING: Dangerous HTML rendering detected. Ensure content is sanitized!"
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: dangerouslySetInnerHTML={...}
+      - pattern: "({html: ...})"
